@@ -33,10 +33,20 @@ public class CustomerService {
 
     public CustomerDTO createCustomer(CustomerDTO customerDTO){
         Customer customer = customerMapper.toEntity(customerDTO);
-        int maxAccountNumber = customerRepository.findMaxAccountNumber();
-        if (maxAccountNumber == 0) {
-            maxAccountNumber = 1000;
-        }
+
+        // Obtener el máximo accountNumber actual de forma segura
+        List<Customer> allCustomers = customerRepository.findAll();
+        int maxAccountNumber = allCustomers.stream()
+                .mapToInt(c -> {
+                    try {
+                        return Integer.parseInt(c.getAccountNumber());
+                    } catch (NumberFormatException e) {
+                        return 0; // En caso de que alguna cuenta no sea numérica
+                    }
+                })
+                .max()
+                .orElse(1000); // Si no hay cuentas, comenzar desde 1000
+
         customer.setAccountNumber(String.valueOf(maxAccountNumber + 1));
         Customer savedCustomer = customerRepository.save(customer);
         return customerMapper.toDTO(savedCustomer);
